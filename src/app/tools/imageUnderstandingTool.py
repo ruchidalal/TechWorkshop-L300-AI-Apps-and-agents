@@ -2,7 +2,8 @@ import base64
 from mimetypes import guess_type
 import os  
 import base64
-from openai import AzureOpenAI  
+from openai import AzureOpenAI
+from azure.identity import DefaultAzureCredential, get_bearer_token_provider
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -12,12 +13,24 @@ azure_endpoint = os.environ.get("gpt_endpoint")
 api_key = os.environ.get("gpt_api_key")
 gpt_deployment = os.environ.get("gpt_deployment")
 
-az_model_client = AzureOpenAI(
-    azure_deployment=azure_deployment,
-    api_version=api_version,
-    azure_endpoint=azure_endpoint,
-    api_key=api_key,
-)
+if api_key:
+    az_model_client = AzureOpenAI(
+        azure_deployment=azure_deployment,
+        api_version=api_version,
+        azure_endpoint=azure_endpoint,
+        api_key=api_key,
+    )
+else:
+    credential = DefaultAzureCredential()
+    token_provider = get_bearer_token_provider(
+        credential, "https://cognitiveservices.azure.com/.default"
+    )
+    az_model_client = AzureOpenAI(
+        azure_deployment=azure_deployment,
+        api_version=api_version,
+        azure_endpoint=azure_endpoint,
+        azure_ad_token_provider=token_provider,
+    )
 
 
 def image_describing_tool(image_input, conversation_history, query = None, mime_type=None):

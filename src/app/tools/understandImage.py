@@ -1,6 +1,7 @@
 import os
 from openai import AzureOpenAI
 import time
+from azure.identity import DefaultAzureCredential, get_bearer_token_provider
 
 from dotenv import load_dotenv
 load_dotenv()
@@ -12,11 +13,24 @@ api_key = os.getenv("gpt_api_key")
 api_version = os.getenv("gpt_api_version")
 
 # Initialize Azure OpenAI client for GPT model
-client = AzureOpenAI(
-    azure_endpoint=endpoint,
-    api_key=api_key,
-    api_version=api_version,
-)
+if api_key:
+    # Use API key if available (local development)
+    client = AzureOpenAI(
+        azure_endpoint=endpoint,
+        api_key=api_key,
+        api_version=api_version,
+    )
+else:
+    # Use managed identity (Azure deployment)
+    credential = DefaultAzureCredential()
+    token_provider = get_bearer_token_provider(
+        credential, "https://cognitiveservices.azure.com/.default"
+    )
+    client = AzureOpenAI(
+        azure_endpoint=endpoint,
+        azure_ad_token_provider=token_provider,
+        api_version=api_version,
+    )
 
 def get_image_description(image_url):
     start_time = time.time()
